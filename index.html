@@ -650,6 +650,9 @@ input[type=range]::-moz-range-thumb { width: 23px; height: 23px; border-radius: 
       <button class="btn" id="btn-friends">
         <span>Стол с друзьями<small>Онлайн · QR-код комнаты</small></span><span>📶</span>
       </button>
+      <button class="btn btn-primary" id="btn-resume" style="display:none">
+        <span>Вернуться за стол<small>Игра продолжается</small></span><span>↩</span>
+      </button>
       <button class="btn btn-ghost" id="btn-rules">Как играть</button>
     </div>
 
@@ -779,7 +782,8 @@ input[type=range]::-moz-range-thumb { width: 23px; height: 23px; border-radius: 
       <div class="row" style="flex-direction:column">
         <button class="btn" id="btn-settings">Настройки</button>
         <button class="btn" id="btn-rules2">Правила и комбинации</button>
-        <button class="btn" id="btn-home">Выйти на главную</button>
+        <button class="btn" id="btn-minimize">Свернуть игру</button>
+        <button class="btn" id="btn-home">Выйти из-за стола</button>
       </div>
     </div>
   </div>
@@ -4553,6 +4557,7 @@ var qrcode = function() {
     deadline: 0,
     turnTotal: 0,
     tickHandle: null,
+    pausedLeft: 0,
     overlayBusy: false,
     handRunning: false
   };
@@ -5586,6 +5591,43 @@ var qrcode = function() {
   /* misc overlays                                                       */
   /* ------------------------------------------------------------------ */
 
+  function pauseTurn() {
+    if (!S.deadline) return;
+    S.pausedLeft = Math.max(0, S.deadline - Date.now());
+    stopTimer();
+    if (S.mode === 'guest' && L.mqtt && L.code) {
+      L.mqtt.publish(mqttTopics(L.code).host, JSON.stringify({ t: 'pause', pid: L.pid }));
+    }
+  }
+
+  function resumeTurn() {
+    if (!S.pausedLeft || !S.canAct) { S.pausedLeft = 0; return; }
+    S.deadline = Date.now() + S.pausedLeft;
+    S.turnTotal = Math.max(S.turnTotal, S.pausedLeft);
+    if (!S.tickHandle) S.tickHandle = setInterval(tickTimer, 100);
+    S.pausedLeft = 0;
+    if (S.mode === 'guest' && L.mqtt && L.code) {
+      L.mqtt.publish(mqttTopics(L.code).host, JSON.stringify({ t: 'resume', pid: L.pid }));
+    }
+    tickTimer();
+  }
+
+  function minimizeGame() {
+    pauseTurn();
+    ['ov-menu', 'ov-rules', 'ov-settings'].forEach(function (id) { $(id).classList.remove('show'); });
+    showScreen('home');
+    var b = $('btn-resume');
+    if (b) b.style.display = '';
+  }
+
+  function resumeGame() {
+    var b = $('btn-resume');
+    if (b) b.style.display = 'none';
+    showScreen('table');
+    resumeTurn();
+    render();
+  }
+
   function showRebuy() { $('ov-rebuy').classList.add('show'); }
 
   function doRebuy() {
@@ -5935,6 +5977,20 @@ var qrcode = function() {
           publishLobby();
           renderLobby();
         }
+      } else if ((msg.t === 'pause' || msg.t === 'resume') && msg.pid) {
+        var pw = null;
+        for (var pi2 = 0; pi2 < L.seats.length; pi2++) if (L.seats[pi2].pid === msg.pid) pw = L.seats[pi2];
+        var pidx = pw ? (pw.idx === undefined ? pw.seat : pw.idx) : -1;
+        if (pidx >= 0 && S.table && S.table.toAct === pidx) {
+          if (msg.t === 'pause') {
+            S.pausedLeft = Math.max(0, S.deadline - Date.now());
+            stopTimer();
+          } else if (S.pausedLeft) {
+            S.deadline = Date.now() + S.pausedLeft;
+            S.pausedLeft = 0;
+            if (!S.tickHandle) S.tickHandle = setInterval(tickTimer, 100);
+          }
+        }
       } else if (msg.t === 'leave' && msg.pid) {
         hostRemovePid(msg.pid);
       } else if (msg.t === 'join' && msg.pid) {
@@ -6095,10 +6151,12 @@ var qrcode = function() {
     $('btn-pass-show').addEventListener('click', acceptPass);
     $('btn-rebuy').addEventListener('click', doRebuy);
     $('btn-rebuy-home').addEventListener('click', goHome);
-    $('btn-leave').addEventListener('click', function () { $('ov-menu').classList.add('show'); });
-    $('btn-menu').addEventListener('click', function () { $('ov-menu').classList.add('show'); });
+    $('btn-leave').addEventListener('click', function () { pauseTurn(); $('ov-menu').classList.add('show'); });
+    $('btn-menu').addEventListener('click', function () { pauseTurn(); $('ov-menu').classList.add('show'); });
+    $('btn-resume').addEventListener('click', resumeGame);
+    $('btn-minimize').addEventListener('click', function () { minimizeGame(); });
     $('ov-menu').addEventListener('click', function (e) {
-      if (e.target === $('ov-menu')) $('ov-menu').classList.remove('show');
+      if (e.target === $('ov-menu')) { $('ov-menu').classList.remove('show'); resumeTurn(); }
     });
     $('btn-settings').addEventListener('click', function () { $('ov-menu').classList.remove('show'); openSettings(); });
     $('btn-rules').addEventListener('click', function () { $('ov-rules').classList.add('show'); });
@@ -6174,6 +6232,9 @@ var qrcode = function() {
     });
     S.table = null;
     S.handRunning = false;
+    S.pausedLeft = 0;
+    var rb = $('btn-resume');
+    if (rb) rb.style.display = 'none';
     keepAwake(false);
     updateHomeStats();
     showScreen('home');
