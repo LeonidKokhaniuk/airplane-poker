@@ -5603,9 +5603,20 @@ var qrcode = function() {
     return c >= 'N' ? 1 : 0;
   }
 
+  var NAME_KEY = 'residence_name';
   function myName() {
-    var n = 'Игрок ' + (1 + Math.floor(Math.random() * 90));
-    return n;
+    if (L.name) return L.name;
+    try {
+      var saved = localStorage.getItem(NAME_KEY);
+      if (saved) { L.name = saved; return saved; }
+    } catch (e) {}
+    L.name = 'Игрок ' + (1 + Math.floor(Math.random() * 90));
+    return L.name;
+  }
+
+  function setName(v) {
+    L.name = String(v || '').trim().slice(0, 14) || myName();
+    try { localStorage.setItem(NAME_KEY, L.name); } catch (e) {}
   }
 
   function joinLink(code) {
@@ -5650,17 +5661,28 @@ var qrcode = function() {
       html = '<div class="sub">Стол с друзьями</div><h2>Игра по коду</h2>' +
         '<p>Один создаёт стол и показывает QR. Остальные наводят камеру и попадают в игру. ' +
         'Нужен интернет — на земле или в Wi-Fi самолёта.</p>' +
+        '<p style="font-size:11px;color:#8b98b4;margin-top:10px">Твоё имя за столом</p>' +
+        '<input class="code-input" id="lb-name" maxlength="14" placeholder="Игрок" value="' + escapeHtml(myName()) + '" style="text-align:center;font-size:16px;letter-spacing:1px;padding:10px">' +
         '<div class="col"><button class="btn btn-primary" id="lb-create">Создать стол</button>' +
         '<button class="btn" id="lb-join">Войти по коду</button>' +
         '<button class="btn btn-ghost" id="lb-close">Закрыть</button></div>';
       s.innerHTML = html;
+      var nameInput = $('lb-name');
+      if (nameInput) {
+        nameInput.oninput = function () { setName(nameInput.value); };
+        nameInput.onblur = function () { nameInput.value = myName(); };
+      }
       $('lb-create').onclick = function () {
+        if (nameInput) setName(nameInput.value);
       showChoice('Сколько мест за столом?', 'Новый стол', [
         { label: '2 места', value: 2 }, { label: '3 места', value: 3 },
         { label: '4 места', value: 4 }, { label: '5 мест', value: 5 }, { label: '6 мест', value: 6 }
       ], function (n) { lobbyCreate(n); });
     };
-      $('lb-join').onclick = function () { L.phase = 'guest'; L.err = ''; renderLobby(); };
+      $('lb-join').onclick = function () {
+        if (nameInput) setName(nameInput.value);
+        L.phase = 'guest'; L.err = ''; renderLobby();
+      };
       $('lb-close').onclick = function () { $('ov-lobby').classList.remove('show'); };
       return;
     }
@@ -5726,7 +5748,7 @@ var qrcode = function() {
     L.maxSeats = maxSeats || 4;
     L.phase = 'host';
     L.pid = 'host-' + Math.random().toString(36).slice(2, 8);
-    L.seats = [{ seat: 0, name: 'Ты', pid: L.pid }];
+    L.seats = [{ seat: 0, name: myName(), pid: L.pid }];
     L.err = '';
     L.status = 'connecting';
     L.code = '';
