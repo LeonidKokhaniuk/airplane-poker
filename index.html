@@ -6084,6 +6084,9 @@ var qrcode = function() {
   }
 
   function goHome() {
+    if (S.mode === 'guest' && L.mqtt && L.code) {
+      try { L.mqtt.publish(mqttTopics(L.code).host, JSON.stringify({ t: 'leave', pid: L.pid })); } catch (e) {}
+    }
     stopTimer();
     ['ov-menu', 'ov-result', 'ov-rebuy', 'ov-pass', 'ov-over', 'ov-settings'].forEach(function (id) {
       $(id).classList.remove('show');
@@ -6146,7 +6149,8 @@ var qrcode = function() {
 
   window.__AP = {
     S: S, L: L, startGame: startGame, humanAction: humanAction, goHome: goHome,
-    lobbyCreate: lobbyCreate, lobbyJoin: lobbyJoin, lobbyStart: lobbyStart, openLobby: openLobby, L: L
+    lobbyCreate: lobbyCreate, lobbyJoin: lobbyJoin, lobbyStart: lobbyStart, openLobby: openLobby, L: L,
+    leaveTable: leaveTable, takeSeat: takeSeat, closeLobbyNet: closeLobbyNet
   };
 })();
 
