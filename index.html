@@ -165,9 +165,9 @@ body { display: flex; align-items: center; justify-content: center; min-height: 
   background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.012) 0 2px, transparent 2px 5px);
 }
 .table-oval {
-  position: absolute; left: 50%; top: 49%;
+  position: absolute; left: 50%; top: 48%;
   transform: translate(-50%, -50%);
-  width: 93%; height: 58%;
+  width: 96%; height: 62%;
   border-radius: 50%;
   background:
     radial-gradient(70% 60% at 50% 35%, rgba(255,255,255,.05), rgba(0,0,0,.18) 70%),
@@ -176,10 +176,11 @@ body { display: flex; align-items: center; justify-content: center; min-height: 
   background:
     radial-gradient(70% 60% at 50% 32%, #1a1a1a 0%, #101010 55%, #070707 100%);
   box-shadow:
-    0 0 0 7px #241513,
-    0 0 0 9px #6b2a23,
-    0 0 0 18px #1c1211,
-    0 0 0 20px #0a0706,
+    0 0 0 6px #2b1815,
+    0 0 0 10px #7d2f26,
+    0 0 0 12px #b0433a,
+    0 0 0 22px #22140f,
+    0 0 0 24px #0c0806,
     inset 0 2px 0 rgba(255,255,255,.10),
     inset 0 -10px 30px rgba(0,0,0,.9),
     inset 0 0 80px rgba(0,0,0,.8),
@@ -229,12 +230,12 @@ body { display: flex; align-items: center; justify-content: center; min-height: 
 .seat.active .timer, .hero.active .timer { opacity: 1; }
 .timer circle { fill: none; stroke-width: 4; }
 .timer .t-bg { stroke: rgba(255,255,255,.09); }
-.timer .t-fg { stroke: var(--gold); stroke-linecap: round; transition: stroke-dashoffset .2s linear, stroke .2s; }
+.timer .t-fg { stroke: var(--gold); stroke-linecap: round; transition: stroke .2s; }
 .seat.hurry .timer .t-fg, .hero.hurry .timer .t-fg { stroke: var(--red); }
 .seat.winner .avatar { box-shadow: 0 0 0 3px var(--green), 0 0 26px rgba(52,195,122,.7); }
 .seat.active .avatar { box-shadow: 0 3px 10px rgba(0,0,0,.5), 0 0 0 2px var(--gold), 0 0 18px rgba(243,192,92,.45); }
 
-.time-num { position: absolute; right: -3px; bottom: -3px; min-width: 17px; height: 17px; padding: 0 3px;
+.time-num { position: absolute; right: -3px; bottom: -3px; width: 20px; height: 17px; padding: 0;
   border-radius: 9px; background: var(--gold); color: #23180a; font-size: 10px; font-weight: 800;
   display: none; place-items: center; font-variant-numeric: tabular-nums; }
 .seat.active .time-num, .hero.active .time-num { display: grid; }
@@ -609,6 +610,13 @@ input[type=range]::-moz-range-thumb { width: 23px; height: 23px; border-radius: 
   box-shadow: 0 3px 10px rgba(0,0,0,.7), 0 0 18px rgba(224,36,36,.15);
 }
 .dealer-label { font-size: 8px; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(224,36,36,.85); }
+
+.table-oval::before {
+  content: "РЕЗИДЕНЦИЯ";
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font-size: 26px; font-weight: 900; letter-spacing: 7px;
+  color: rgba(255, 255, 255, .035); white-space: nowrap; pointer-events: none;
+}
 
 </style>
 <!-- single-file build: everything inlined, zero network requests -->
@@ -4526,8 +4534,8 @@ var qrcode = function() {
     for (var i = 0; i < n; i++) {
       var a = Math.PI * (1 + (i + 0.5) / n); // от 180° до 360°
       out.push([
-        +(50 + 38 * Math.cos(a)).toFixed(2),
-        +(44 + 26 * Math.sin(a)).toFixed(2)
+        +(50 + 43 * Math.cos(a)).toFixed(2),
+        +(45 + 28 * Math.sin(a)).toFixed(2)
       ]);
     }
     return out;
@@ -4897,7 +4905,7 @@ var qrcode = function() {
     if (!ms) { S.deadline = 0; S.turnTotal = 0; return; }
     S.deadline = Date.now() + ms;
     S.turnTotal = ms;
-    S.tickHandle = setInterval(tickTimer, 100);
+    S.tickHandle = setInterval(tickTimer, 120);
     tickTimer();
   }
 
