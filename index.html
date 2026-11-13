@@ -343,7 +343,13 @@ body { display: flex; align-items: center; justify-content: center; min-height: 
   box-shadow: 0 3px 8px rgba(0,0,0,.5), inset 0 0 0 2px #3a3a3a, inset 0 0 0 3px #0a0a0a;
 }
 .card.back::after { content: "✈"; position: absolute; inset: 0; display: grid; place-items: center; color: rgba(224,36,36,.7); font-size: 10px; }
-.card.dealt { animation: cardIn .32s cubic-bezier(.22,.9,.3,1.2) both; }
+.card.dealt { animation: cardIn .35s cubic-bezier(.22,.9,.3,1.2) both; }
+.board .card.dealt { animation: dealBoard .55s cubic-bezier(.2,.8,.3,1.15) both; }
+@keyframes dealBoard {
+  from { opacity: 0; transform: translateY(-46px) scale(.72) rotate(-8deg); }
+  60% { opacity: 1; }
+  to { opacity: 1; transform: none; }
+}
 @keyframes cardIn { from { opacity: 0; transform: translate(-30px,-24px) rotate(-8deg) scale(.72); } }
 .card.dim { filter: brightness(.55) saturate(.6); }
 
@@ -544,7 +550,7 @@ input[type=range]::-moz-range-thumb { width: 23px; height: 23px; border-radius: 
   position: absolute; width: 22px; height: 31px; margin: -15px 0 0 -11px; border-radius: 4px;
   background: repeating-linear-gradient(45deg, #1e1e1e 0 5px, #141414 5px 10px);
   box-shadow: 0 2px 6px rgba(0,0,0,.6), inset 0 0 0 1px #3a3a3a;
-  transition: transform .45s cubic-bezier(.3,.8,.4,1), opacity .45s;
+  transition: transform .6s cubic-bezier(.25,.9,.35,1), opacity .6s;
   z-index: 20;
 }
 
@@ -5042,7 +5048,12 @@ var qrcode = function() {
   function renderBoard(t) {
     var html = '';
     for (var i = 0; i < 5; i++) {
-      if (i < t.board.length) html += cardHtml(t.board[i], i >= S.animBoardFrom ? 'dealt' : '');
+      if (i < t.board.length) {
+        var isNew = i >= S.animBoardFrom;
+        var c = cardHtml(t.board[i], isNew ? 'dealt' : '');
+        if (isNew) c = c.replace('class="card', 'style="animation-delay:' + ((i - S.animBoardFrom) * 0.12).toFixed(2) + 's" class="card');
+        html += c;
+      }
       else html += '<div class="slot"></div>';
     }
     $('board').innerHTML = html;
@@ -5289,12 +5300,12 @@ var qrcode = function() {
     var pos = seatPositions(seats.length);
     var i = 0;
     for (var k = 0; k < seats.length; k++) {
-      flyCard(0, pos[k][0], pos[k][1] - 4, i * 90);
-      flyCard(0, pos[k][0], pos[k][1] - 4, (i + seats.length) * 90);
+      flyCard(0, pos[k][0], pos[k][1] - 4, 120 + i * 190);
+      flyCard(0, pos[k][0], pos[k][1] - 4, 120 + (i + seats.length) * 190);
       i++;
     }
-    flyCard(0, 50, 84, i * 90);
-    flyCard(0, 50, 84, (i + 1) * 90);
+    flyCard(0, 50, 84, 120 + i * 190);
+    flyCard(0, 50, 84, 120 + (i + 1) * 190);
   }
 
   function flyChips(fx, fy, tx, ty, n) {
