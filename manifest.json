@@ -1,6 +1,6 @@
 {
-  "name": "Airplane Poker",
-  "short_name": "Airplane Poker",
+  "name": "РЕЗИДЕНЦИЯ — покер",
+  "short_name": "РЕЗИДЕНЦИЯ",
   "description": "Техасский холдем без интернета: против ботов или хот-сит на одном телефоне.",
   "start_url": "./index.html",
   "scope": "./",
