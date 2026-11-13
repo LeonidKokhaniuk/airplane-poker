@@ -172,13 +172,18 @@ body { display: flex; align-items: center; justify-content: center; min-height: 
   background:
     radial-gradient(70% 60% at 50% 35%, rgba(255,255,255,.05), rgba(0,0,0,.18) 70%),
     linear-gradient(180deg, #161616, #0c0c0c);
-  border: 1px solid rgba(224,36,36,.30);
+  border: none;
+  background:
+    radial-gradient(70% 60% at 50% 32%, #1a1a1a 0%, #101010 55%, #070707 100%);
   box-shadow:
-    0 0 0 10px #17110f,
-    0 0 0 11px rgba(224,36,36,.20),
-    0 0 0 18px #0d0a09,
-    inset 0 0 90px rgba(0,0,0,.8),
-    0 18px 44px rgba(0,0,0,.6);
+    0 0 0 7px #241513,
+    0 0 0 9px #6b2a23,
+    0 0 0 18px #1c1211,
+    0 0 0 20px #0a0706,
+    inset 0 2px 0 rgba(255,255,255,.10),
+    inset 0 -10px 30px rgba(0,0,0,.9),
+    inset 0 0 80px rgba(0,0,0,.8),
+    0 26px 60px rgba(0,0,0,.7);
   pointer-events: none;
 }
 .table-oval::after {
@@ -4537,6 +4542,8 @@ var qrcode = function() {
     revealActive: false,
     raiseOpen: false,
     animBoardFrom: 0,
+    boardShown: {},
+    flipTimers: [],
     animSeats: false,
     winSeats: [],
     startChips: {},
@@ -5121,6 +5128,7 @@ var qrcode = function() {
   }
 
   function renderBoard(t) {
+    if (!S.boardShown) S.boardShown = {};
     var html = '';
     for (var i = 0; i < 5; i++) {
       if (i < t.board.length) {
