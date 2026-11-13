@@ -618,6 +618,15 @@ input[type=range]::-moz-range-thumb { width: 23px; height: 23px; border-radius: 
   color: rgba(255, 255, 255, .035); white-space: nowrap; pointer-events: none;
 }
 
+.chip-stack { display: inline-flex; flex-direction: column-reverse; align-items: center; }
+.chip-stack .chip { margin-top: -7px; box-shadow: 0 -1px 0 rgba(255,255,255,.15), 0 2px 3px rgba(0,0,0,.5); }
+.chip-stack .chip:last-child { margin-top: 0; }
+.bet-spot b { font-size: 10.5px; font-weight: 800; color: #fff; }
+.pot-stacks { display: inline-flex; align-items: flex-end; gap: 2px; }
+.chip-col { display: inline-flex; flex-direction: column-reverse; }
+.chip-col .chip { margin-top: -8px; }
+.chip-col .chip:first-child { margin-top: 0; }
+
 </style>
 <!-- single-file build: everything inlined, zero network requests -->
 <link rel="manifest" href="manifest.json">
@@ -5072,7 +5081,20 @@ var qrcode = function() {
       var xy = pos[p.seat] || pos[pos.length - 1] || pos[0] || [50, 30];
       html += seatHtml(t, p, xy, hs);
     }
-    $('seats').innerHTML = html;
+    var bets = '';
+    t.players.forEach(function (p) {
+      if (!p.streetBet || p.folded) return;
+      var xy = pos[p.seat] || [50, 40];
+      var bx = xy[0] + (50 - xy[0]) * 0.42;
+      var by = xy[1] + (44 - xy[1]) * 0.42;
+      if (p.seat === hs) { bx = 50; by = 78; }
+      var n = Math.max(1, Math.min(5, Math.round(p.streetBet / 40)));
+      var stack = '';
+      for (var q = 0; q < n; q++) stack += '<span class="chip' + (q % 3 === 1 ? ' c2' : q % 3 === 2 ? ' c3' : '') + '"></span>';
+      bets += '<div class="bet-spot" style="left:' + bx.toFixed(2) + '%;top:' + by.toFixed(2) + '%">' +
+        '<span class="chip-stack">' + stack + '</span><b>' + fmt(p.streetBet) + '</b></div>';
+    });
+    $('seats').innerHTML = html + bets;
     S.animSeats = false;
   }
 
@@ -5112,9 +5134,7 @@ var qrcode = function() {
       if (p.seat === t.sbIndex) blindTag = '<span class="blind-tag">МБ</span>';
       else if (p.seat === t.bbIndex) blindTag = '<span class="blind-tag bb">ББ</span>';
     }
-    var bet = p.streetBet > 0 ? '<div class="bet-inline"><span class="chips">' +
-      '<span class="chip"></span><span class="chip c2"></span><span class="chip c3"></span></span>' +
-      fmt(p.streetBet) + '</div>' : '';
+    var bet = '';
 
     return '<div class="' + cls + '" style="left:' + xy[0] + '%;top:' + xy[1] + '%" data-seat="' + p.seat + '">' +
       '<div class="plate"><div class="avatar-wrap">' +
@@ -5171,10 +5191,16 @@ var qrcode = function() {
 
   function renderPot(t) {
     if (!t.pot) { $('pot-wrap').innerHTML = ''; return; }
-    var n = Math.max(1, Math.min(9, Math.round(t.pot / 100)));
-    var stack = '';
-    for (var i = 0; i < n; i++) stack += '<span class="chip' + (i % 3 === 1 ? ' c2' : i % 3 === 2 ? ' c3' : '') + '"></span>';
-    $('pot-wrap').innerHTML = '<div class="pot"><span class="pot-stack">' + stack + '</span>Банк ' + fmt(t.pot) + '</div>';
+    var totalChips = Math.max(1, Math.min(12, Math.round(t.pot / 10)));
+    var cols = Math.max(1, Math.min(3, Math.ceil(totalChips / 4)));
+    var per = Math.max(1, Math.ceil(totalChips / cols));
+    var stacks = '';
+    for (var c2 = 0; c2 < cols; c2++) {
+      stacks += '<span class="chip-col">';
+      for (var i = 0; i < per; i++) stacks += '<span class="chip' + (i % 3 === 1 ? ' c2' : i % 3 === 2 ? ' c3' : '') + '"></span>';
+      stacks += '</span>';
+    }
+    $('pot-wrap').innerHTML = '<div class="pot"><span class="pot-stacks">' + stacks + '</span>Банк ' + fmt(t.pot) + '</div>';
   }
 
   function renderHero(t) {
