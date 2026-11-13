@@ -650,6 +650,16 @@ input[type=range]::-moz-range-thumb { width: 23px; height: 23px; border-radius: 
 .seat.winner .plate { box-shadow: 0 0 0 2px rgba(52,195,122,.8), 0 0 28px rgba(52,195,122,.55); animation: winPulse 1s ease-in-out 3; }
 @keyframes winPulse { 50% { box-shadow: 0 0 0 3px rgba(52,195,122,1), 0 0 40px rgba(52,195,122,.8); } }
 
+.seat.away .plate { opacity: .45; filter: grayscale(1); }
+.away-tag { font-style: normal; font-size: 8.5px; color: #ffb3ad; letter-spacing: .3px; }
+.wait-banner {
+  position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
+  background: rgba(16,10,10,.95); border: 1px solid rgba(224,36,36,.55);
+  color: #ffb3ad; font-size: 11.5px; padding: 7px 14px; border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.6); display: none; z-index: 120; white-space: nowrap;
+}
+.wait-banner.show { display: block; }
+
 </style>
 <!-- single-file build: everything inlined, zero network requests -->
 <link rel="manifest" href="manifest.json">
@@ -4598,6 +4608,7 @@ var qrcode = function() {
     turnTotal: 0,
     tickHandle: null,
     pausedLeft: 0,
+    waiting: false,
     overlayBusy: false,
     handRunning: false
   };
@@ -4840,7 +4851,7 @@ var qrcode = function() {
         return {
           seat: p.seat, name: p.name, avatar: p.avatar, color: p.color,
           chips: p.chips, streetBet: p.streetBet, totalBet: p.totalBet,
-          folded: p.folded, allIn: p.allIn, out: p.out, isHuman: p.isHuman,
+          folded: p.folded, allIn: p.allIn, out: p.out, isHuman: p.isHuman, away: !!p.away,
           lastAction: p.lastAction, revealed: p.revealed, winThisHand: p.winThisHand,
           cards: (revealAll || p.revealed || p.seat === forSeat) ? p.cards.slice() : []
         };
@@ -5138,6 +5149,7 @@ var qrcode = function() {
     var cls = 'seat';
     if (p.folded) cls += ' folded';
     if (p.out) cls += ' out';
+    if (p.away) cls += ' away';
     if (active) cls += ' active';
     if (S.winSeats.indexOf(p.seat) >= 0) cls += ' winner';
 
@@ -5165,7 +5177,7 @@ var qrcode = function() {
       '<circle class="t-fg" cx="28" cy="28" r="25" stroke-dasharray="' + RING_C.toFixed(1) + '" stroke-dashoffset="0"/></svg>' +
       '<div class="avatar" style="background:linear-gradient(160deg,#fff,' + (p.color || '#c4cfe2') + ')">' + (p.avatar || '🙂') + '</div>' +
       dealer + '<span class="time-num">0</span></div>' +
-      '<div class="nm">' + escapeHtml(p.name) + blindTag + '</div>' +
+      '<div class="nm">' + escapeHtml(p.name) + (p.away ? ' <em class="away-tag">отошёл</em>' : '') + blindTag + '</div>' +
       '<div class="stk">' + chipStack(p.chips, 250, 6) + fmt(p.chips) + '</div>' +
       badge + cards + bet + '</div></div>';
   }
@@ -5604,6 +5616,7 @@ var qrcode = function() {
       clearInterval(S.nextTick);
       if (document.getElementById('ov-rebuy').classList.contains('show')) return;
       if (document.getElementById('ov-over').classList.contains('show')) return;
+      if (S.waiting) return;
       nextHand();
     }, sec * 1000);
   }
@@ -5705,6 +5718,9 @@ var qrcode = function() {
   function resumeGame() {
     var b = $('btn-resume');
     if (b) b.style.display = 'none';
+    if (S.mode === 'guest' && L.mqtt && L.code) {
+      L.mqtt.publish(mqttTopics(L.code).host, JSON.stringify({ t: 'return', pid: L.pid }));
+    }
     showScreen('table');
     resumeTurn();
     render();
@@ -5825,7 +5841,7 @@ var qrcode = function() {
       for (var k = 0; k < L.seats.length; k++) if (L.seats[k].seat === i) s = L.seats[k];
       out += '<div class="seat-row' + (s ? '' : ' empty') + '">' +
         '<span class="em">' + (s ? (i === 0 ? '🧑' : '👤') : '·') + '</span>' +
-        '<span class="nm">' + (s ? escapeHtml(s.name) : 'свободно') + '</span>' +
+        '<span class="nm">' + (s ? escapeHtml(s.name) + (s.away ? ' <em class="away-tag">отошёл</em>' : '') : 'свободно') + '</span>' +
         (selectable && !s
           ? '<button class="seat-take" data-seat="' + i + '">занять</button>'
           : '<span class="tag">' + (s ? (i === 0 ? 'хост' : 'место ' + (i + 1)) : '') + '</span>') +
@@ -6023,16 +6039,48 @@ var qrcode = function() {
 
   function leaveTable() {
     if (L.mqtt && L.code && L.pid) {
-      L.mqtt.publish(mqttTopics(L.code).host, JSON.stringify({ t: 'leave', pid: L.pid }));
+      L.mqtt.publish(mqttTopics(L.code).host, JSON.stringify({ t: 'away', pid: L.pid }));
     }
-    closeLobbyNet();
-    S.mode = 'bots';
-    goHome();
+    pauseTurn();
+    ['ov-menu', 'ov-result', 'ov-pass'].forEach(function (id) { $(id).classList.remove('show'); });
+    showScreen('home');
+    var b = $('btn-resume');
+    if (b) b.style.display = '';
   }
 
   function takeSeat(seat) {
     if (!L.mqtt || !L.code) return;
     L.mqtt.publish(mqttTopics(L.code).host, JSON.stringify({ t: 'take', pid: L.pid, seat: seat }));
+  }
+
+  function activePlayers() {
+    var n = 0;
+    for (var i = 0; i < L.seats.length; i++) if (!L.seats[i].away) n++;
+    return n;
+  }
+
+  function checkWaiting() {
+    var waiting = activePlayers() < 2;
+    S.waiting = waiting;
+    var el = $('wait-banner');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'wait-banner';
+      el.className = 'wait-banner';
+      $('app').appendChild(el);
+    }
+    if (waiting) {
+      if (S.table) { stopTimer(); }
+      var who = '';
+      for (var i = 0; i < L.seats.length; i++) if (L.seats[i].away) who = L.seats[i].name;
+      el.textContent = 'Игра на паузе — ждём ' + (who || 'игрока');
+      el.classList.add('show');
+    } else {
+      el.classList.remove('show');
+      if (S.mode === 'host' && S.table && !S.handRunning && S.table.stage !== 'gameover') {
+        setTimeout(function () { if (!S.waiting && !S.handRunning) newHand(); }, 600);
+      }
+    }
   }
 
   function publishLobby() {
@@ -6074,6 +6122,28 @@ var qrcode = function() {
             S.pausedLeft = 0;
             if (!S.tickHandle) S.tickHandle = setInterval(tickTimer, 100);
           }
+        }
+      } else if ((msg.t === 'away' || msg.t === 'return') && msg.pid) {
+        var aw = null;
+        for (var ai = 0; ai < L.seats.length; ai++) if (L.seats[ai].pid === msg.pid) aw = L.seats[ai];
+        if (aw) {
+          aw.away = (msg.t === 'away');
+          var aidx = aw.idx === undefined ? aw.seat : aw.idx;
+          if (S.table && S.table.players[aidx]) {
+            var ap = S.table.players[aidx];
+            ap.away = aw.away;
+            if (aw.away) {
+              ap.folded = true;
+              if (S.table.toAct === aidx && S.table.stage === 'betting') { try { doAction(aidx, 'fold'); } catch (e) {} }
+            } else {
+              ap.out = false;
+            }
+          }
+          notify((aw.name || 'Игрок') + (aw.away ? ' отошёл' : ' вернулся'));
+          publishLobby();
+          renderLobby();
+          if (S.table) publishViews();
+          checkWaiting();
         }
       } else if (msg.t === 'leave' && msg.pid) {
         hostRemovePid(msg.pid);
