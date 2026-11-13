@@ -355,10 +355,12 @@ body { display: flex; align-items: center; justify-content: center; min-height: 
 .card .s { position: absolute; right: 3px; bottom: 1px; font-size: 19px; line-height: 1; }
 .card.red { color: #cf3a3f; }
 .card.back {
-  background: repeating-linear-gradient(45deg, #1e1e1e 0 6px, #141414 6px 12px);
-  box-shadow: 0 3px 8px rgba(0,0,0,.5), inset 0 0 0 2px #3a3a3a, inset 0 0 0 3px #0a0a0a;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.09) 0 6px, rgba(255,255,255,0) 6px 12px),
+    linear-gradient(160deg, #c62b30 0%, #8d1a1f 55%, #4a0c0f 100%);
+  box-shadow: 0 3px 8px rgba(0,0,0,.55), inset 0 0 0 2px rgba(255,255,255,.22), inset 0 0 0 3px rgba(0,0,0,.35);
 }
-.card.back::after { content: "✈"; position: absolute; inset: 0; display: grid; place-items: center; color: rgba(224,36,36,.7); font-size: 10px; }
+.card.back::after { content: "♠"; position: absolute; inset: 0; display: grid; place-items: center; color: rgba(255,255,255,.45); font-size: 13px; }
 .card.dealt { animation: cardIn .35s cubic-bezier(.22,.9,.3,1.2) both; }
 .board .card.dealt { animation: dealBoard .55s cubic-bezier(.2,.8,.3,1.15) both; }
 @keyframes dealBoard {
@@ -564,8 +566,10 @@ input[type=range]::-moz-range-thumb { width: 23px; height: 23px; border-radius: 
 
 .fly-card {
   position: absolute; width: 22px; height: 31px; margin: -15px 0 0 -11px; border-radius: 4px;
-  background: repeating-linear-gradient(45deg, #1e1e1e 0 5px, #141414 5px 10px);
-  box-shadow: 0 2px 6px rgba(0,0,0,.6), inset 0 0 0 1px #3a3a3a;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.10) 0 5px, rgba(255,255,255,0) 5px 10px),
+    linear-gradient(160deg, #c62b30, #7d161a);
+  box-shadow: 0 2px 6px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.25);
   transition: transform .6s cubic-bezier(.25,.9,.35,1), opacity .6s;
   z-index: 20;
 }
@@ -5253,7 +5257,7 @@ var qrcode = function() {
       else hint = holeLabel(p.cards);
     }
     var active = (t.toAct === hs && t.stage === 'betting');
-    var label = (S.mode === 'bots' || S.mode === 'host') ? 'Ты' : p.name;
+    var label = p.name || 'Ты';
 
     $('hero').className = 'hero' + (active ? ' active' : '') + (S.winSeats.indexOf(hs) >= 0 ? ' winner' : '');
     $('hero').innerHTML =
@@ -6303,7 +6307,7 @@ var qrcode = function() {
     var t = new PE.Table({ startStack: 1000, sb: 5, bb: 10 });
     L.seats.forEach(function (s, i) {
       s.idx = i;
-      var p = t.addPlayer(i === 0 ? 'Ты' : s.name, true);
+      var p = t.addPlayer(s.name || ('Игрок ' + (i + 1)), true);
       p.avatar = i === 0 ? '🧑' : HUMAN_EMOJI[i % HUMAN_EMOJI.length];
       p.color = HUMAN_COLORS[i % HUMAN_COLORS.length];
     });
