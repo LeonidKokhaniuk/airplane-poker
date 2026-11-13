@@ -1,5 +1,5 @@
 /* Airplane Poker - offline cache */
-const CACHE = 'residence-v32';
+const CACHE = 'residence-v33';
 
 self.addEventListener('install', () => { self.skipWaiting(); });
 
