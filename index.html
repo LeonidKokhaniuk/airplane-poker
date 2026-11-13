@@ -5595,12 +5595,21 @@ var qrcode = function() {
   /* misc overlays                                                       */
   /* ------------------------------------------------------------------ */
 
+  function notify(text) {
+    toast(text);
+    if (S.mode === 'host' && L.mqtt && L.code) {
+      L.mqtt.publish(mqttTopics(L.code).all, JSON.stringify({ t: 'notice', text: text }));
+    }
+  }
+
   function pauseTurn() {
     if (!S.deadline) return;
     S.pausedLeft = Math.max(0, S.deadline - Date.now());
     stopTimer();
     if (S.mode === 'guest' && L.mqtt && L.code) {
       L.mqtt.publish(mqttTopics(L.code).host, JSON.stringify({ t: 'pause', pid: L.pid }));
+    } else if (S.mode === 'host') {
+      notify('Ты свернул игру');
     }
   }
 
@@ -5612,6 +5621,8 @@ var qrcode = function() {
     S.pausedLeft = 0;
     if (S.mode === 'guest' && L.mqtt && L.code) {
       L.mqtt.publish(mqttTopics(L.code).host, JSON.stringify({ t: 'resume', pid: L.pid }));
+    } else if (S.mode === 'host') {
+      notify('Ты вернулся за стол');
     }
     tickTimer();
   }
@@ -5989,7 +6000,9 @@ var qrcode = function() {
           if (msg.t === 'pause') {
             S.pausedLeft = Math.max(0, S.deadline - Date.now());
             stopTimer();
+            notify((pw.name || 'Игрок') + ' свернул игру');
           } else if (S.pausedLeft) {
+            notify((pw.name || 'Игрок') + ' вернулся');
             S.deadline = Date.now() + S.pausedLeft;
             S.pausedLeft = 0;
             if (!S.tickHandle) S.tickHandle = setInterval(tickTimer, 100);
@@ -6034,6 +6047,8 @@ var qrcode = function() {
         L.seats = msg.seats || L.seats;
         L.phase = 'wait';
         renderLobby();
+      } else if (msg.t === 'notice' && msg.text) {
+        toast(msg.text);
       } else if (msg.t === 'view' && msg.to === L.pid) {
         if (typeof msg.seat === 'number') { S.mySeat = msg.seat; L.mySeatKnown = true; }
         $('ov-lobby').classList.remove('show');
