@@ -627,6 +627,29 @@ input[type=range]::-moz-range-thumb { width: 23px; height: 23px; border-radius: 
 .chip-col .chip { margin-top: -8px; }
 .chip-col .chip:first-child { margin-top: 0; }
 
+.win-banner {
+  position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 14px 26px; border-radius: 18px;
+  background: radial-gradient(120% 120% at 50% 0%, rgba(52,195,122,.22), rgba(10,10,10,.92) 70%);
+  border: 1px solid rgba(52,195,122,.55);
+  box-shadow: 0 0 40px rgba(52,195,122,.35), 0 18px 40px rgba(0,0,0,.7);
+  animation: winPop 2.4s cubic-bezier(.2,.9,.3,1.1) both;
+  z-index: 30; pointer-events: none; white-space: nowrap;
+}
+.wb-cup { font-size: 22px; line-height: 1; }
+.wb-name { font-size: 15px; font-weight: 800; color: #fff; letter-spacing: .4px; }
+.wb-amt { font-size: 22px; font-weight: 900; color: #4ee08d; font-variant-numeric: tabular-nums; }
+@keyframes winPop {
+  0% { opacity: 0; transform: translate(-50%,-50%) scale(.6); }
+  12% { opacity: 1; transform: translate(-50%,-50%) scale(1.06); }
+  20% { transform: translate(-50%,-50%) scale(1); }
+  80% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%,-56%) scale(.96); }
+}
+.seat.winner .plate { box-shadow: 0 0 0 2px rgba(52,195,122,.8), 0 0 28px rgba(52,195,122,.55); animation: winPulse 1s ease-in-out 3; }
+@keyframes winPulse { 50% { box-shadow: 0 0 0 3px rgba(52,195,122,1), 0 0 40px rgba(52,195,122,.8); } }
+
 </style>
 <!-- single-file build: everything inlined, zero network requests -->
 <link rel="manifest" href="manifest.json">
@@ -5390,6 +5413,15 @@ var qrcode = function() {
     }, 900);
   }
 
+  function winBanner(name, amount) {
+    var el = document.createElement('div');
+    el.className = 'win-banner';
+    el.innerHTML = '<div class="wb-cup">🏆</div><div class="wb-name">' + escapeHtml(name) + '</div>' +
+      '<div class="wb-amt">+' + fmt(amount) + '</div>';
+    $('fx').appendChild(el);
+    setTimeout(function () { if (el.parentNode) el.remove(); }, 2400);
+  }
+
   function winFx(t) {
     var felt = $('felt');
     if (!felt) return;
@@ -5403,6 +5435,7 @@ var qrcode = function() {
         for (var j = 0; j < seats.length; j++) if (seats[j].seat === seat) xy = pos[j];
       }
       if (!xy) xy = [50, 30];
+      winBanner(t.players[seat].name, t.players[seat].winThisHand || 0);
       flyChips(50, 40, xy[0], xy[1] - 2, 7);
       floatText(xy[0], xy[1] - 8, '+' + fmt(t.players[seat].winThisHand || 0));
       burst(xy[0], xy[1]);
