@@ -5280,12 +5280,12 @@ var qrcode = function() {
     var el = document.createElement('div');
     el.className = 'fly-card';
     el.style.left = '50%';
-    el.style.top = '42%';
+    el.style.top = '33%';
     el.style.transitionDelay = delay + 'ms';
     layer.appendChild(el);
     setTimeout(function () {
       var r = $('felt').getBoundingClientRect();
-      el.style.transform = 'translate(' + ((tx - 50) / 100 * r.width) + 'px,' + ((ty - 42) / 100 * r.height) + 'px) rotate(' + (Math.random() * 16 - 8) + 'deg)';
+      el.style.transform = 'translate(' + ((tx - 50) / 100 * r.width) + 'px,' + ((ty - 33) / 100 * r.height) + 'px) rotate(' + (Math.random() * 16 - 8) + 'deg)';
       el.style.opacity = '0';
     }, 30 + delay);
     setTimeout(function () { if (el.parentNode) el.remove(); }, 900 + delay);
