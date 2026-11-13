@@ -574,7 +574,7 @@ input[type=range]::-moz-range-thumb { width: 23px; height: 23px; border-radius: 
 .seat-take:active { background: rgba(224,36,36,.3); }
 
 .dealer-chip {
-  position: absolute; left: 50%; top: 71%; transform: translate(-50%, -50%);
+  position: absolute; left: 50%; top: 65%; transform: translate(-50%, -50%);
   padding: 3px 9px; border-radius: 10px;
   font-size: 8.5px; font-weight: 800; letter-spacing: 1.4px;
   color: #ff8080; background: rgba(224,36,36,.10);
@@ -5178,7 +5178,7 @@ var qrcode = function() {
       btnRaise.innerHTML = (la.minRaiseTo >= la.maxRaiseTo) ? 'Олл-ин' : 'Рейз';
     } else {
       btnCall.innerHTML = 'Чек';
-      btnCall.classList.remove('check');
+      btnCall.classList.add('check');
     }
     if (S.raiseOpen && la && la.canRaise) syncRaisePanel(la);
   }
@@ -5315,12 +5315,12 @@ var qrcode = function() {
     var el = document.createElement('div');
     el.className = 'fly-card';
     el.style.left = '50%';
-    el.style.top = '71%';
+    el.style.top = '65%';
     el.style.transitionDelay = delay + 'ms';
     layer.appendChild(el);
     setTimeout(function () {
       var r = $('felt').getBoundingClientRect();
-      el.style.transform = 'translate(' + ((tx - 50) / 100 * r.width) + 'px,' + ((ty - 71) / 100 * r.height) + 'px) rotate(' + (Math.random() * 16 - 8) + 'deg)';
+      el.style.transform = 'translate(' + ((tx - 50) / 100 * r.width) + 'px,' + ((ty - 65) / 100 * r.height) + 'px) rotate(' + (Math.random() * 16 - 8) + 'deg)';
       el.style.opacity = '0';
     }, 30 + delay);
     setTimeout(function () { if (el.parentNode) el.remove(); }, 900 + delay);
