@@ -6,9 +6,9 @@
 <meta name="theme-color" content="#050505">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Airplane Poker">
-<meta name="description" content="Техасский холдем: боты, хот-сит и онлайн-стол по коду комнаты.">
-<title>Airplane Poker</title>
+<meta name="apple-mobile-web-app-title" content="РЕЗИДЕНЦИЯ">
+<meta name="description" content="РЕЗИДЕНЦИЯ — техасский холдем: боты, хот-сит и онлайн-стол по коду комнаты.">
+<title>РЕЗИДЕНЦИЯ · покер</title>
 <style>
 /* ============ Airplane Poker — table UI ============ */
 :root {
@@ -91,7 +91,7 @@ body { display: flex; align-items: center; justify-content: center; min-height: 
   background: radial-gradient(circle, rgba(224,36,36,.30), rgba(224,36,36,0) 70%); }
 
 .home-title { text-align: center; }
-.home-title h1 { margin: 0; font-size: clamp(26px, 8.6vw, 38px); font-weight: 900; letter-spacing: 1px; line-height: 1; text-transform: uppercase; }
+.home-title h1 { margin: 0; font-size: clamp(24px, 7.4vw, 34px); font-weight: 900; letter-spacing: 3px; line-height: 1; text-transform: uppercase; }
 .home-title h1 span { color: #e02424; }
 .home-title p { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
 
@@ -561,6 +561,29 @@ input[type=range]::-moz-range-thumb { width: 23px; height: 23px; border-radius: 
   100% { transform: scale(1) rotate(0); }
 }
 
+.stack-chips { display: inline-flex; align-items: center; margin-right: 4px; vertical-align: -2px; }
+.stack-chips .chip { width: 8px; height: 8px; margin-right: -4px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.4); }
+.stack-chips .chip:last-child { margin-right: 2px; }
+
+.dealer-seat {
+  position: absolute; left: 50%; top: 17%; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 1px; z-index: 3;
+}
+.dealer-face {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 16px;
+  background: radial-gradient(circle at 35% 30%, #2a2a2a, #101010 75%);
+  border: 1px solid rgba(224,36,36,.45);
+  box-shadow: 0 2px 8px rgba(0,0,0,.6), inset 0 0 8px rgba(224,36,36,.15);
+}
+.dealer-label { font-size: 8.5px; letter-spacing: .8px; text-transform: uppercase; color: rgba(224,36,36,.8); }
+
+.seat-take {
+  border: 1px solid rgba(224,36,36,.5); background: rgba(224,36,36,.14); color: #ff8a8a;
+  border-radius: 7px; font-size: 10.5px; font-weight: 700; padding: 4px 9px; cursor: pointer;
+}
+.seat-take:active { background: rgba(224,36,36,.3); }
+
 </style>
 <!-- single-file build: everything inlined, zero network requests -->
 <link rel="manifest" href="manifest.json">
@@ -579,7 +602,7 @@ input[type=range]::-moz-range-thumb { width: 23px; height: 23px; border-radius: 
     </div>
 
     <div class="home-title">
-      <h1>Airplane <span>Poker</span></h1>
+      <h1>РЕЗИДЕНЦИЯ</h1>
       <p>Техасский холдем · офлайн и онлайн</p>
     </div>
 
@@ -627,6 +650,10 @@ input[type=range]::-moz-range-thumb { width: 23px; height: 23px; border-radius: 
       <div class="felt" id="felt">
         <div class="felt-rim"></div>
         <div class="table-oval"></div>
+        <div class="dealer-seat" id="dealer-seat">
+          <div class="dealer-face">🎩</div>
+          <div class="dealer-label">дилер</div>
+        </div>
         <div class="pot-wrap" id="pot-wrap"></div>
         <div class="board" id="board"></div>
         <div class="seats" id="seats"></div>
@@ -5006,6 +5033,17 @@ var qrcode = function() {
     S.animSeats = false;
   }
 
+  function chipStack(chips, per, max) {
+    var n = Math.max(0, Math.min(max, Math.round(chips / per)));
+    if (chips > 0 && n === 0) n = 1;
+    var out = '<span class="stack-chips">';
+    for (var i = 0; i < n; i++) {
+      var cls = i % 3 === 1 ? ' c2' : i % 3 === 2 ? ' c3' : '';
+      out += '<span class="chip' + cls + '"></span>';
+    }
+    return out + '</span>';
+  }
+
   function seatHtml(t, p, xy, hs) {
     var active = t.toAct === p.seat && t.stage === 'betting';
     var cls = 'seat';
@@ -5041,7 +5079,7 @@ var qrcode = function() {
       '<div class="avatar" style="background:linear-gradient(160deg,#fff,' + (p.color || '#c4cfe2') + ')">' + (p.avatar || '🙂') + '</div>' +
       dealer + '<span class="time-num">0</span></div>' +
       '<div class="nm">' + escapeHtml(p.name) + blindTag + '</div>' +
-      '<div class="stk">' + fmt(p.chips) + '</div>' +
+      '<div class="stk">' + chipStack(p.chips, 250, 6) + fmt(p.chips) + '</div>' +
       badge + cards + bet + '</div>';
   }
 
@@ -5062,9 +5100,10 @@ var qrcode = function() {
 
   function renderPot(t) {
     if (!t.pot) { $('pot-wrap').innerHTML = ''; return; }
-    $('pot-wrap').innerHTML = '<div class="pot"><span class="pot-stack">' +
-      '<span class="chip"></span><span class="chip c2"></span><span class="chip c3"></span></span>' +
-      'Банк ' + fmt(t.pot) + '</div>';
+    var n = Math.max(1, Math.min(9, Math.round(t.pot / 100)));
+    var stack = '';
+    for (var i = 0; i < n; i++) stack += '<span class="chip' + (i % 3 === 1 ? ' c2' : i % 3 === 2 ? ' c3' : '') + '"></span>';
+    $('pot-wrap').innerHTML = '<div class="pot"><span class="pot-stack">' + stack + '</span>Банк ' + fmt(t.pot) + '</div>';
   }
 
   function renderHero(t) {
@@ -5280,12 +5319,12 @@ var qrcode = function() {
     var el = document.createElement('div');
     el.className = 'fly-card';
     el.style.left = '50%';
-    el.style.top = '33%';
+    el.style.top = '17%';
     el.style.transitionDelay = delay + 'ms';
     layer.appendChild(el);
     setTimeout(function () {
       var r = $('felt').getBoundingClientRect();
-      el.style.transform = 'translate(' + ((tx - 50) / 100 * r.width) + 'px,' + ((ty - 33) / 100 * r.height) + 'px) rotate(' + (Math.random() * 16 - 8) + 'deg)';
+      el.style.transform = 'translate(' + ((tx - 50) / 100 * r.width) + 'px,' + ((ty - 17) / 100 * r.height) + 'px) rotate(' + (Math.random() * 16 - 8) + 'deg)';
       el.style.opacity = '0';
     }, 30 + delay);
     setTimeout(function () { if (el.parentNode) el.remove(); }, 900 + delay);
@@ -5549,7 +5588,7 @@ var qrcode = function() {
   /* лобби по сети: код комнаты + QR                                      */
   /* ------------------------------------------------------------------ */
 
-  var L = { phase: 'menu', code: '', pid: '', mqtt: null, seats: [], err: '', busy: false };
+  var L = { phase: 'menu', code: '', pid: '', mqtt: null, seats: [], err: '', busy: false, maxSeats: 4 };
 
   var ALPHA_A = 'ABCDEFGHJK';   // брокер №0
   var ALPHA_B = 'NPQRSTUVWXYZ'; // брокер №1
@@ -5589,14 +5628,19 @@ var qrcode = function() {
     $('ov-lobby').classList.add('show');
   }
 
-  function seatRowsHtml() {
+  function seatRowsHtml(selectable) {
     var out = '';
-    for (var i = 0; i < 4; i++) {
-      var s = L.seats[i];
+    var n = L.maxSeats || 4;
+    for (var i = 0; i < n; i++) {
+      var s = null;
+      for (var k = 0; k < L.seats.length; k++) if (L.seats[k].seat === i) s = L.seats[k];
       out += '<div class="seat-row' + (s ? '' : ' empty') + '">' +
         '<span class="em">' + (s ? (i === 0 ? '🧑' : '👤') : '·') + '</span>' +
         '<span class="nm">' + (s ? escapeHtml(s.name) : 'свободно') + '</span>' +
-        '<span class="tag">' + (s ? (i === 0 ? 'хост' : 'игрок ' + (i + 1)) : '') + '</span></div>';
+        (selectable && !s
+          ? '<button class="seat-take" data-seat="' + i + '">занять</button>'
+          : '<span class="tag">' + (s ? (i === 0 ? 'хост' : 'место ' + (i + 1)) : '') + '</span>') +
+        '</div>';
     }
     return out;
   }
@@ -5614,7 +5658,12 @@ var qrcode = function() {
         '<button class="btn" id="lb-join">Войти по коду</button>' +
         '<button class="btn btn-ghost" id="lb-close">Закрыть</button></div>';
       s.innerHTML = html;
-      $('lb-create').onclick = lobbyCreate;
+      $('lb-create').onclick = function () {
+      showChoice('Сколько мест за столом?', 'Новый стол', [
+        { label: '2 места', value: 2 }, { label: '3 места', value: 3 },
+        { label: '4 места', value: 4 }, { label: '5 мест', value: 5 }, { label: '6 мест', value: 6 }
+      ], function (n) { lobbyCreate(n); });
+    };
       $('lb-join').onclick = function () { L.phase = 'guest'; L.err = ''; renderLobby(); };
       $('lb-close').onclick = function () { $('ov-lobby').classList.remove('show'); };
       return;
@@ -5657,10 +5706,14 @@ var qrcode = function() {
       html = '<div class="sub">Лобби</div><h2>Ты за столом</h2>' +
         (L.status === 'connecting' ? '<p class="muted" style="font-size:11px">Подключаюсь к серверу…</p>' : '') +
         '<p style="font-size:12px">Ждём, пока хост начнёт игру.</p>' +
-        '<div class="seat-list">' + seatRowsHtml() + '</div>' +
-        '<div class="col"><button class="btn btn-ghost" id="lb-leave">Выйти</button></div>';
+        '<div class="seat-list">' + seatRowsHtml(true) + '</div>' +
+        '<p style="font-size:11px;color:#8b98b4">Свободные места можно занять — нажми «занять».</p>' +
+        '<div class="col"><button class="btn btn-ghost" id="lb-leave">Выйти из-за стола</button></div>';
       s.innerHTML = html;
-      $('lb-leave').onclick = closeLobbyNet;
+      $('lb-leave').onclick = function () { leaveTable(); };
+      document.querySelectorAll('.seat-take').forEach(function (b) {
+        b.onclick = function () { takeSeat(+b.getAttribute('data-seat')); };
+      });
       return;
     }
   }
@@ -5672,8 +5725,9 @@ var qrcode = function() {
     };
   }
 
-  function lobbyCreate() {
+  function lobbyCreate(maxSeats) {
     S.mode = 'host';
+    L.maxSeats = maxSeats || 4;
     L.phase = 'host';
     L.pid = 'host-' + Math.random().toString(36).slice(2, 8);
     L.seats = [{ seat: 0, name: 'Ты', pid: L.pid }];
@@ -5738,6 +5792,44 @@ var qrcode = function() {
     });
   }
 
+  function hostRemovePid(pid) {
+    for (var i = 0; i < L.seats.length; i++) {
+      if (L.seats[i].pid === pid) {
+        var seat = L.seats[i].idx === undefined ? L.seats[i].seat : L.seats[i].idx;
+        L.seats.splice(i, 1);
+        if (S.table) {
+          var p = S.table.players[seat];
+          if (p && !p.out) {
+            p.folded = true;
+            p.out = true;
+            if (S.table.toAct === seat && S.table.stage === 'betting') { try { doAction(seat, 'fold'); } catch (e) {} }
+          }
+          if (S.table.players.filter(function (x) { return !x.out && x.chips > 0; }).length < 2) {
+            setTimeout(showGameOver, 600);
+          }
+        }
+        publishLobby();
+        renderLobby();
+        if (S.table) publishViews();
+        return;
+      }
+    }
+  }
+
+  function leaveTable() {
+    if (L.mqtt && L.code && L.pid) {
+      L.mqtt.publish(mqttTopics(L.code).host, JSON.stringify({ t: 'leave', pid: L.pid }));
+    }
+    closeLobbyNet();
+    S.mode = 'bots';
+    goHome();
+  }
+
+  function takeSeat(seat) {
+    if (!L.mqtt || !L.code) return;
+    L.mqtt.publish(mqttTopics(L.code).host, JSON.stringify({ t: 'take', pid: L.pid, seat: seat }));
+  }
+
   function publishLobby() {
     if (!L.mqtt) return;
     L.lastMsg = Date.now();
@@ -5750,7 +5842,21 @@ var qrcode = function() {
     try { msg = JSON.parse(payload); } catch (e) { return; }
 
     if (S.mode === 'host') {
-      if (msg.t === 'join' && msg.pid) {
+      if (msg.t === 'take' && msg.pid && typeof msg.seat === 'number') {
+        var occ = null, mover = null;
+        for (var z = 0; z < L.seats.length; z++) {
+          if (L.seats[z].seat === msg.seat) occ = L.seats[z];
+          if (L.seats[z].pid === msg.pid) mover = L.seats[z];
+        }
+        if (!occ && mover && msg.seat < L.maxSeats) {
+          mover.seat = msg.seat;
+          L.mqtt.publish(mqttTopics(L.code).all, JSON.stringify({ t: 'welcome', to: msg.pid, seat: mover.seat, seats: L.seats.map(function (x) { return { seat: x.seat, name: x.name }; }) }));
+          publishLobby();
+          renderLobby();
+        }
+      } else if (msg.t === 'leave' && msg.pid) {
+        hostRemovePid(msg.pid);
+      } else if (msg.t === 'join' && msg.pid) {
         var known = null;
         for (var k = 0; k < L.seats.length; k++) if (L.seats[k].pid === msg.pid) known = L.seats[k];
         if (known) {
@@ -5758,8 +5864,13 @@ var qrcode = function() {
           if (S.table && S.handRunning) publishViews();
           return;
         }
-        if (L.seats.length >= 4) return;
-        var seat = L.seats.length;
+        if (L.seats.length >= L.maxSeats) return;
+        var seat = 0;
+        for (var f = 0; f < L.maxSeats; f++) {
+          var busy = false;
+          for (var q = 0; q < L.seats.length; q++) if (L.seats[q].seat === f) busy = true;
+          if (!busy) { seat = f; break; }
+        }
         L.seats.push({ seat: seat, name: (msg.name || 'Игрок') + ' ' + seat, pid: msg.pid });
         L.mqtt.publish(mqttTopics(L.code).all, JSON.stringify({ t: 'welcome', to: msg.pid, seat: seat, seats: L.seats.map(function (s) { return { seat: s.seat, name: s.name }; }) }));
         publishLobby();
@@ -5769,7 +5880,7 @@ var qrcode = function() {
         var who = null;
         for (var i = 0; i < L.seats.length; i++) if (L.seats[i].pid === msg.pid) who = L.seats[i];
         if (who && S.table && S.table.stage === 'betting' && S.table.toAct === who.seat) {
-          doAction(who.seat, msg.action, msg.amount);
+          doAction(who.idx === undefined ? who.seat : who.idx, msg.action, msg.amount);
         }
       }
     } else {
@@ -5798,8 +5909,9 @@ var qrcode = function() {
     L.lastMsg = Date.now();
     for (var i = 1; i < L.seats.length; i++) {
       var s = L.seats[i];
-      var v = buildView(s.seat, false);
-      L.mqtt.publish(mqttTopics(L.code).all, JSON.stringify({ t: 'view', to: s.pid, seat: s.seat, v: v }));
+      var idx = (s.idx === undefined ? s.seat : s.idx);
+      var v = buildView(idx, false);
+      L.mqtt.publish(mqttTopics(L.code).all, JSON.stringify({ t: 'view', to: s.pid, seat: idx, v: v }));
     }
   }
 
@@ -5807,6 +5919,7 @@ var qrcode = function() {
     if (L.seats.length < 2) { toast('Нужно минимум 2 игрока'); return; }
     var t = new PE.Table({ startStack: 1000, sb: 5, bb: 10 });
     L.seats.forEach(function (s, i) {
+      s.idx = i;
       var p = t.addPlayer(i === 0 ? 'Ты' : s.name, true);
       p.avatar = i === 0 ? '🧑' : HUMAN_EMOJI[i % HUMAN_EMOJI.length];
       p.color = HUMAN_COLORS[i % HUMAN_COLORS.length];
