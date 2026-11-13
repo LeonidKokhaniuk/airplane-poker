@@ -211,19 +211,19 @@ body { display: flex; align-items: center; justify-content: center; min-height: 
   box-shadow: 0 3px 10px rgba(0,0,0,.5), inset 0 0 0 2px rgba(255,255,255,.22);
 }
 .timer { position: absolute; inset: 0; transform: rotate(-90deg); pointer-events: none; opacity: 0; transition: opacity .2s; }
-.seat.active .timer { opacity: 1; }
+.seat.active .timer, .hero.active .timer { opacity: 1; }
 .timer circle { fill: none; stroke-width: 4; }
 .timer .t-bg { stroke: rgba(255,255,255,.09); }
 .timer .t-fg { stroke: var(--gold); stroke-linecap: round; transition: stroke-dashoffset .2s linear, stroke .2s; }
-.seat.hurry .timer .t-fg { stroke: var(--red); }
+.seat.hurry .timer .t-fg, .hero.hurry .timer .t-fg { stroke: var(--red); }
 .seat.winner .avatar { box-shadow: 0 0 0 3px var(--green), 0 0 26px rgba(52,195,122,.7); }
 .seat.active .avatar { box-shadow: 0 3px 10px rgba(0,0,0,.5), 0 0 0 2px var(--gold), 0 0 18px rgba(243,192,92,.45); }
 
 .time-num { position: absolute; right: -3px; bottom: -3px; min-width: 17px; height: 17px; padding: 0 3px;
   border-radius: 9px; background: var(--gold); color: #23180a; font-size: 10px; font-weight: 800;
   display: none; place-items: center; font-variant-numeric: tabular-nums; }
-.seat.active .time-num { display: grid; }
-.seat.hurry .time-num { background: var(--red); color: #fff; }
+.seat.active .time-num, .hero.active .time-num { display: grid; }
+.seat.hurry .time-num, .hero.hurry .time-num { background: var(--red); color: #fff; }
 
 .seat .nm { font-size: 10px; color: #c8d4ea; max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 2px #000; }
 .seat .stk { font-size: 11.5px; font-weight: 700; color: #f2f2f2; font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px #000; }
@@ -574,13 +574,7 @@ input[type=range]::-moz-range-thumb { width: 23px; height: 23px; border-radius: 
 .seat-take:active { background: rgba(224,36,36,.3); }
 
 .dealer-chip {
-  position: absolute; left: 50%; top: 65%; transform: translate(-50%, -50%);
-  padding: 3px 9px; border-radius: 10px;
-  font-size: 8.5px; font-weight: 800; letter-spacing: 1.4px;
-  color: #ff8080; background: rgba(224,36,36,.10);
-  border: 1px solid rgba(224,36,36,.45);
-  box-shadow: 0 2px 8px rgba(0,0,0,.5);
-  z-index: 3; pointer-events: none;
+  display: none;
 }
 
 </style>
@@ -4930,6 +4924,7 @@ var qrcode = function() {
       }
       S.canAct = false;
       stopTimer();
+      closeRaise();
       return;
     }
     if (!t || !S.handRunning || t.stage !== 'betting') return;
