@@ -5782,7 +5782,8 @@ var qrcode = function() {
   /* лобби по сети: код комнаты + QR                                      */
   /* ------------------------------------------------------------------ */
 
-  var L = { phase: 'menu', code: '', pid: '', mqtt: null, seats: [], err: '', busy: false, maxSeats: 4 };
+  var OPEN_TOPIC = 'apv1/open';
+  var L = { phase: 'menu', isOpen: false, found: {}, code: '', pid: '', mqtt: null, seats: [], err: '', busy: false, maxSeats: 4 };
 
   var ALPHA_A = 'ABCDEFGHJK';   // брокер №0
   var ALPHA_B = 'NPQRSTUVWXYZ'; // брокер №1
@@ -5861,8 +5862,10 @@ var qrcode = function() {
         'Нужен интернет — на земле или в Wi-Fi самолёта.</p>' +
         '<p style="font-size:11px;color:#8b98b4;margin-top:10px">Твоё имя за столом</p>' +
         '<input class="code-input" id="lb-name" maxlength="14" placeholder="Игрок" value="' + escapeHtml(myName()) + '" style="text-align:center;font-size:16px;letter-spacing:1px;padding:10px">' +
-        '<div class="col"><button class="btn btn-primary" id="lb-create">Создать стол</button>' +
+        '<div class="col"><button class="btn btn-primary" id="lb-create">Создать стол с кодом</button>' +
+        '<button class="btn" id="lb-create-open">Создать открытый стол</button>' +
         '<button class="btn" id="lb-join">Войти по коду</button>' +
+        '<button class="btn" id="lb-find">Найти открытый стол</button>' +
         '<button class="btn btn-ghost" id="lb-close">Закрыть</button></div>';
       s.innerHTML = html;
       var nameInput = $('lb-name');
@@ -5870,12 +5873,23 @@ var qrcode = function() {
         nameInput.oninput = function () { setName(nameInput.value); };
         nameInput.onblur = function () { nameInput.value = myName(); };
       }
+      $('lb-find').onclick = function () { if (nameInput) setName(nameInput.value); findOpenTables(); };
+      var pickSeats = function (isOpen) {
+        return function (n) { lobbyCreate(n, isOpen); };
+      };
+      $('lb-create-open').onclick = function () {
+        if (nameInput) setName(nameInput.value);
+        showChoice('Сколько мест за столом?', 'Открытый стол', [
+          { label: '2 места', value: 2 }, { label: '3 места', value: 3 },
+          { label: '4 места', value: 4 }, { label: '5 мест', value: 5 }, { label: '6 мест', value: 6 }
+        ], pickSeats(true));
+      };
       $('lb-create').onclick = function () {
         if (nameInput) setName(nameInput.value);
       showChoice('Сколько мест за столом?', 'Новый стол', [
         { label: '2 места', value: 2 }, { label: '3 места', value: 3 },
         { label: '4 места', value: 4 }, { label: '5 мест', value: 5 }, { label: '6 мест', value: 6 }
-      ], function (n) { lobbyCreate(n); });
+      ], pickSeats(false));
     };
       $('lb-join').onclick = function () {
         if (nameInput) setName(nameInput.value);
@@ -5923,6 +5937,28 @@ var qrcode = function() {
       return;
     }
 
+    if (L.phase === 'find') {
+      var list = Object.keys(L.found).map(function (k) { return L.found[k]; });
+      var rows = list.length
+        ? list.map(function (m) {
+            return '<div class="seat-row"><span class="em">🃏</span><span class="nm">' + escapeHtml(m.host || 'Стол') +
+              '</span><span class="tag">' + (m.seats || 1) + '/' + (m.max || 4) + '</span>' +
+              '<button class="seat-take" data-code="' + escapeHtml(m.code) + '">войти</button></div>';
+          }).join('')
+        : '<p class="muted" style="font-size:12px">Ищу открытые столы…</p>';
+      html = '<div class="sub">Открытые столы</div><h2>Рядом</h2>' +
+        '<div class="seat-list">' + rows + '</div>' +
+        '<div class="col"><button class="btn" id="lb-rescan">Обновить</button>' +
+        '<button class="btn btn-ghost" id="lb-back3">Назад</button></div>';
+      s.innerHTML = html;
+      $('lb-rescan').onclick = function () { L.found = {}; findOpenTables(); };
+      $('lb-back3').onclick = function () { L.phase = 'menu'; L.found = {}; renderLobby(); };
+      document.querySelectorAll('.seat-take[data-code]').forEach(function (b) {
+        b.onclick = function () { lobbyJoin(b.getAttribute('data-code')); };
+      });
+      return;
+    }
+
     if (L.phase === 'wait') {
       html = '<div class="sub">Лобби</div><h2>Ты за столом</h2>' +
         (L.status === 'connecting' ? '<p class="muted" style="font-size:11px">Подключаюсь к серверу…</p>' : '') +
@@ -5946,8 +5982,9 @@ var qrcode = function() {
     };
   }
 
-  function lobbyCreate(maxSeats) {
+  function lobbyCreate(maxSeats, isOpen) {
     S.mode = 'host';
+    L.isOpen = !!isOpen;
     L.maxSeats = maxSeats || 4;
     L.phase = 'host';
     L.pid = 'host-' + Math.random().toString(36).slice(2, 8);
@@ -5970,6 +6007,11 @@ var qrcode = function() {
       m.subscribe(mqttTopics(L.code).host);
       m.subscribe(mqttTopics(L.code).all);
       publishLobby();
+      if (L.isOpen) {
+        publishOpen();
+        if (L.openTimer) clearInterval(L.openTimer);
+        L.openTimer = setInterval(publishOpen, 3000);
+      }
       renderLobby();
     }).catch(function () {
       if (idx === 0) { hostOnBroker(1); return; }
@@ -6051,6 +6093,39 @@ var qrcode = function() {
   function takeSeat(seat) {
     if (!L.mqtt || !L.code) return;
     L.mqtt.publish(mqttTopics(L.code).host, JSON.stringify({ t: 'take', pid: L.pid, seat: seat }));
+  }
+
+  function publishOpen() {
+    if (!L.mqtt || !L.code || !L.isOpen) return;
+    L.mqtt.publish(OPEN_TOPIC, JSON.stringify({
+      t: 'open', code: L.code, host: myName(), seats: L.seats.length,
+      max: L.maxSeats, ts: Date.now()
+    }));
+  }
+
+  function onOpenMessage(topic, payload) {
+    var m;
+    try { m = JSON.parse(payload); } catch (e) { return; }
+    if (m.t !== 'open' || !m.code) return;
+    if (Date.now() - (m.ts || 0) > 15000) return;
+    L.found[m.code] = m;
+    if (L.phase === 'find') renderLobby();
+  }
+
+  function findOpenTables() {
+    L.phase = 'find';
+    L.found = {};
+    renderLobby();
+    if (L.mqtt && L.mqtt.connected) {
+      L.mqtt.subscribe(OPEN_TOPIC);
+      setTimeout(function () { if (L.phase === 'find') renderLobby(); }, 2500);
+      return;
+    }
+    MQTT.connect({ clientId: 'apfind' + Math.random().toString(36).slice(2, 8), onMessage: onOpenMessage }).then(function (m) {
+      L.mqtt = m;
+      m.subscribe(OPEN_TOPIC);
+      setTimeout(function () { if (L.phase === 'find') renderLobby(); }, 2500);
+    }).catch(function () { L.err = 'Нет связи с сервером'; L.phase = 'menu'; renderLobby(); });
   }
 
   function activePlayers() {
@@ -6232,6 +6307,7 @@ var qrcode = function() {
   }
 
   function closeLobbyNet() {
+    if (L.openTimer) { clearInterval(L.openTimer); L.openTimer = null; }
     if (L.hb) { clearInterval(L.hb); L.hb = null; }
     if (L.joinTimer) { clearInterval(L.joinTimer); L.joinTimer = null; }
     if (L.mqtt) { try { L.mqtt.close(); } catch (e) {} }
@@ -6448,7 +6524,7 @@ var qrcode = function() {
   window.__AP = {
     S: S, L: L, startGame: startGame, humanAction: humanAction, goHome: goHome,
     lobbyCreate: lobbyCreate, lobbyJoin: lobbyJoin, lobbyStart: lobbyStart, openLobby: openLobby, L: L,
-    leaveTable: leaveTable, takeSeat: takeSeat, closeLobbyNet: closeLobbyNet
+    leaveTable: leaveTable, takeSeat: takeSeat, closeLobbyNet: closeLobbyNet, findOpenTables: findOpenTables
   };
 })();
 
