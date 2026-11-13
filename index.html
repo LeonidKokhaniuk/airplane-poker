@@ -5920,6 +5920,19 @@ var qrcode = function() {
       return;
     }
 
+    if (L.phase === 'host' && L.isOpen) {
+      html = '<div class="sub">Стол создан</div><h2>Открытый стол</h2>' +
+        '<p style="font-size:12px">Друзья найдут его сами: «Стол с друзьями» → «Найти открытый стол». Код не нужен.</p>' +
+        '<div class="seat-list">' + seatRowsHtml() + '</div>' +
+        (L.err ? '<p style="color:#ff9b98;font-size:11.5px">' + escapeHtml(L.err) + '</p>' : '') +
+        '<div class="col"><button class="btn btn-primary" id="lb-start"' + (L.seats.length < 2 ? ' disabled style="opacity:.4"' : '') + '>Начать игру</button>' +
+        '<button class="btn btn-ghost" id="lb-cancel">Отменить</button></div>';
+      s.innerHTML = html;
+      if ($('lb-start')) $('lb-start').onclick = lobbyStart;
+      $('lb-cancel').onclick = closeLobbyNet;
+      return;
+    }
+
     if (L.phase === 'host') {
       var qr = L.code ? Net.qrSvg(joinLink(L.code), 3) : '';
       html = '<div class="sub">Стол создан</div><h2>Наведи камеру</h2>' +
@@ -6116,16 +6129,17 @@ var qrcode = function() {
     L.phase = 'find';
     L.found = {};
     renderLobby();
-    if (L.mqtt && L.mqtt.connected) {
-      L.mqtt.subscribe(OPEN_TOPIC);
-      setTimeout(function () { if (L.phase === 'find') renderLobby(); }, 2500);
-      return;
-    }
-    MQTT.connect({ clientId: 'apfind' + Math.random().toString(36).slice(2, 8), onMessage: onOpenMessage }).then(function (m) {
-      L.mqtt = m;
-      m.subscribe(OPEN_TOPIC);
-      setTimeout(function () { if (L.phase === 'find') renderLobby(); }, 2500);
-    }).catch(function () { L.err = 'Нет связи с сервером'; L.phase = 'menu'; renderLobby(); });
+    if (L.finders) { L.finders.forEach(function (m) { try { m.close(); } catch (e) {} }); }
+    L.finders = [];
+    var rid = Math.random().toString(36).slice(2, 7);
+    [0, 1].forEach(function (idx) {
+      MQTT.connectOn(idx, { clientId: 'find' + idx + rid, onMessage: onOpenMessage }).then(function (m) {
+        L.finders.push(m);
+        m.subscribe(OPEN_TOPIC);
+        if (L.phase === 'find') setTimeout(renderLobby, 800);
+      }).catch(function () {});
+    });
+    setTimeout(function () { if (L.phase === 'find') renderLobby(); }, 2500);
   }
 
   function activePlayers() {
@@ -6166,6 +6180,7 @@ var qrcode = function() {
 
   function onLobbyMessage(topic, payload) {
     L.lastMsg = Date.now();
+    if (topic === OPEN_TOPIC) { onOpenMessage(topic, payload); return; }
     var msg;
     try { msg = JSON.parse(payload); } catch (e) { return; }
 
@@ -6307,6 +6322,7 @@ var qrcode = function() {
   }
 
   function closeLobbyNet() {
+    if (L.finders) { L.finders.forEach(function (m) { try { m.close(); } catch (e) {} }); L.finders = []; }
     if (L.openTimer) { clearInterval(L.openTimer); L.openTimer = null; }
     if (L.hb) { clearInterval(L.hb); L.hb = null; }
     if (L.joinTimer) { clearInterval(L.joinTimer); L.joinTimer = null; }
