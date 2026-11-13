@@ -1,5 +1,5 @@
 /* Airplane Poker - offline cache */
-const CACHE = 'airplane-poker-v19';
+const CACHE = 'airplane-poker-v20';
 
 self.addEventListener('install', () => { self.skipWaiting(); });
 
