@@ -656,7 +656,7 @@ input[type=range]::-moz-range-thumb { width: 23px; height: 23px; border-radius: 
       <button class="btn btn-ghost" id="btn-rules">Как играть</button>
     </div>
 
-    <div class="diag" id="diag">v1.7 · загрузка…</div>
+    <div class="diag" id="diag">v1.9 · загрузка…</div>
     <div class="home-foot">Без рекламы и регистрации · офлайн-режим для одного телефона</div>
   </section>
 
@@ -5060,7 +5060,8 @@ var qrcode = function() {
     var html = '';
 
     for (var i = 0; i < seats.length; i++) {
-      var p = seats[i], xy = pos[p.seat] || pos[pos.length - 1];
+      var p = seats[i];
+      var xy = pos[p.seat] || pos[pos.length - 1] || pos[0] || [50, 30];
       html += seatHtml(t, p, xy, hs);
     }
     $('seats').innerHTML = html;
@@ -5079,6 +5080,7 @@ var qrcode = function() {
   }
 
   function seatHtml(t, p, xy, hs) {
+    if (!xy) xy = [50, 30];
     var active = t.toAct === p.seat && t.stage === 'betting';
     var cls = 'seat';
     if (p.folded) cls += ' folded';
@@ -5123,7 +5125,9 @@ var qrcode = function() {
   }
 
   function scheduleFlip(i, delay) {
+    if (!S.boardShown) S.boardShown = {};
     if (S.flipTimers) S.flipTimers.push(setTimeout(function () {
+      if (!S.boardShown) S.boardShown = {};
       S.boardShown[i] = true;
       var el = document.querySelector('.board .card.back[data-bi="' + i + '"]');
       var val = boardValue(i);
@@ -6276,7 +6280,7 @@ var qrcode = function() {
   document.addEventListener('touchstart', registerSW, { passive: true, once: true });
 
   var diag = document.getElementById('diag');
-  if (diag) diag.textContent = 'v1.7 · JS OK · ' + (__errs.length ? __errs.length + ' err' : 'no errors');
+  if (diag) diag.textContent = 'v1.9 · JS OK · ' + (__errs.length ? __errs.length + ' err' : 'no errors');
 
   var warn = document.getElementById('js-warn');
   if (warn) warn.parentNode.removeChild(warn);
