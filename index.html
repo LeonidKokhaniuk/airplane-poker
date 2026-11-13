@@ -172,12 +172,13 @@ body { display: flex; align-items: center; justify-content: center; min-height: 
   background:
     radial-gradient(70% 60% at 50% 35%, rgba(255,255,255,.05), rgba(0,0,0,.18) 70%),
     linear-gradient(180deg, #161616, #0c0c0c);
-  border: 2px solid rgba(224,36,36,.18);
+  border: 1px solid rgba(224,36,36,.30);
   box-shadow:
-    0 0 0 7px rgba(0,0,0,.45),
-    0 0 0 8px rgba(255,255,255,.05),
-    inset 0 0 70px rgba(0,0,0,.75),
-    0 16px 40px rgba(0,0,0,.55);
+    0 0 0 10px #17110f,
+    0 0 0 11px rgba(224,36,36,.20),
+    0 0 0 18px #0d0a09,
+    inset 0 0 90px rgba(0,0,0,.8),
+    0 18px 44px rgba(0,0,0,.6);
   pointer-events: none;
 }
 .table-oval::after {
@@ -203,6 +204,15 @@ body { display: flex; align-items: center; justify-content: center; min-height: 
 .seat.out { opacity: .3; filter: grayscale(1); }
 .seat.folded { opacity: .62; }
 
+.seat .plate {
+  width: 100%;
+  background: linear-gradient(180deg, rgba(30,30,30,.94), rgba(12,12,12,.94));
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 12px;
+  padding: 4px 4px 3px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.06);
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+}
 .avatar-wrap { position: relative; width: 56px; height: 56px; display: grid; place-items: center; }
 .avatar {
   width: 44px; height: 44px; border-radius: 50%;
@@ -584,6 +594,15 @@ input[type=range]::-moz-range-thumb { width: 23px; height: 23px; border-radius: 
   100% { transform: rotateY(0) scale(1); }
 }
 
+.dealer-face {
+  width: 42px; height: 42px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 20px;
+  background: linear-gradient(160deg, #2a2a2a, #0e0e0e);
+  border: 1px solid rgba(224,36,36,.55);
+  box-shadow: 0 3px 10px rgba(0,0,0,.7), 0 0 18px rgba(224,36,36,.15);
+}
+.dealer-label { font-size: 8px; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(224,36,36,.85); }
+
 </style>
 <!-- single-file build: everything inlined, zero network requests -->
 <link rel="manifest" href="manifest.json">
@@ -650,7 +669,10 @@ input[type=range]::-moz-range-thumb { width: 23px; height: 23px; border-radius: 
       <div class="felt" id="felt">
         <div class="felt-rim"></div>
         <div class="table-oval"></div>
-        <div class="dealer-chip" id="dealer-seat">ДИЛЕР</div>
+        <div class="dealer-seat" id="dealer-seat">
+          <div class="dealer-face">🧑‍💼</div>
+          <div class="dealer-label">крупье</div>
+        </div>
         <div class="pot-wrap" id="pot-wrap"></div>
         <div class="board" id="board"></div>
         <div class="seats" id="seats"></div>
@@ -5073,14 +5095,14 @@ var qrcode = function() {
       fmt(p.streetBet) + '</div>' : '';
 
     return '<div class="' + cls + '" style="left:' + xy[0] + '%;top:' + xy[1] + '%" data-seat="' + p.seat + '">' +
-      '<div class="avatar-wrap">' +
+      '<div class="plate"><div class="avatar-wrap">' +
       '<svg class="timer" viewBox="0 0 56 56"><circle class="t-bg" cx="28" cy="28" r="25"/>' +
       '<circle class="t-fg" cx="28" cy="28" r="25" stroke-dasharray="' + RING_C.toFixed(1) + '" stroke-dashoffset="0"/></svg>' +
       '<div class="avatar" style="background:linear-gradient(160deg,#fff,' + (p.color || '#c4cfe2') + ')">' + (p.avatar || '🙂') + '</div>' +
       dealer + '<span class="time-num">0</span></div>' +
       '<div class="nm">' + escapeHtml(p.name) + blindTag + '</div>' +
       '<div class="stk">' + chipStack(p.chips, 250, 6) + fmt(p.chips) + '</div>' +
-      badge + cards + bet + '</div>';
+      badge + cards + bet + '</div></div>';
   }
 
   function boardValue(i) {
